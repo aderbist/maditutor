@@ -5,6 +5,9 @@ from fastapi.staticfiles import StaticFiles
 import json, os, uuid, shutil
 from datetime import datetime
 from database import SessionLocal, TutorCard, Review
+import os
+
+port = int(os.getenv("PORT", 8000))
 
 app = FastAPI(title="MADI Tutor API")
 app.mount("/static", StaticFiles(directory="static"), name="static")
