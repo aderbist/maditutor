@@ -11,6 +11,19 @@ services:
           name: maditutor-db
           property: connectionString
 
-  - type: postgres
-    name: maditutor-db
+  - type: static
+    name: maditutor-frontend
+    buildCommand: |
+      cd frontend
+      npm install
+      npm run build
+    publishDir: frontend/out
+    envVars:
+      - key: NEXT_PUBLIC_API_URL
+        value: https://maditutor-backend.onrender.com
+
+databases:
+  - name: maditutor-db
     plan: free
+    databaseName: maditutor
+    user: maditutor
