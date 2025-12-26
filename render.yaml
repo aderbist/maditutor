@@ -11,14 +11,6 @@ services:
           name: maditutor-db
           property: connectionString
 
-  - type: static
-    name: maditutor-frontend
-    rootDir: frontend
-    buildCommand: |
-      npm install
-      npm run build
-    staticPublishPath: ./out
-
-  - type: postgres  # ← ИЗМЕНИЛ "pgsql" НА "postgres"
+  - type: postgres
     name: maditutor-db
     plan: free
