@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: maditutor-backend
+    env: python
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: maditutor-db
+          property: connectionString
+
+  - type: web
+    name: maditutor-frontend
+    env: static
+    rootDir: frontend/out
+    buildCommand: cd ../frontend && npm ci && npm run build
+    staticPublishPath: ../frontend/out
+
+  - type: pgsql
+    name: maditutor-db
+    plan: free
