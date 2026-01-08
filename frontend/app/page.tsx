@@ -30,26 +30,26 @@ export default function Home() {
     localStorage.setItem('selectedGroup', selectedGroup)
     
     // Имитация запроса к API
-    const mockSchedule = weekType === 'numerator' 
-      ? [
-          { day: 'Понедельник', time: '09:00-10:30', subject: 'Математический анализ', type: 'Лекция', teacher: 'Иванов А.П.', room: 'А-101' },
-          { day: 'Понедельник', time: '10:40-12:10', subject: 'Физика', type: 'Практика', teacher: 'Петрова М.С.', room: 'Б-205' },
-          { day: 'Вторник', time: '13:30-15:00', subject: 'Программирование', type: 'Лабораторная', teacher: 'Сидоров В.Г.', room: 'В-310' },
-          { day: 'Среда', time: '14:00-15:30', subject: 'Иностранный язык', type: 'Практика', teacher: 'Козлова Е.Н.', room: 'Г-104' },
-          { day: 'Четверг', time: '11:00-12:30', subject: 'Теоретическая механика', type: 'Лекция', teacher: 'Николаев П.В.', room: 'Д-105' }
-        ]
-      : [
-          { day: 'Понедельник', time: '13:30-15:00', subject: 'Информатика', type: 'Практика', teacher: 'Смирнов О.Л.', room: 'А-201' },
-          { day: 'Вторник', time: '09:00-10:30', subject: 'Математический анализ', type: 'Лекция', teacher: 'Иванов А.П.', room: 'Б-101' },
-          { day: 'Пятница', time: '15:40-17:10', subject: 'Физкультура', type: 'Практика', teacher: 'Волков С.А.', room: 'Спортзал' }
-        ]
-    
-    setSchedule(mockSchedule)
+    //const mockSchedule = weekType === 'numerator' 
+    //  ? [
+    //      { day: 'Понедельник', time: '09:00-10:30', subject: 'Математический анализ', type: 'Лекция', teacher: 'Иванов А.П.', room: 'А-101' },
+    //      { day: 'Понедельник', time: '10:40-12:10', subject: 'Физика', type: 'Практика', teacher: 'Петрова М.С.', room: 'Б-205' },
+    //      { day: 'Вторник', time: '13:30-15:00', subject: 'Программирование', type: 'Лабораторная', teacher: 'Сидоров В.Г.', room: 'В-310' },
+    //      { day: 'Среда', time: '14:00-15:30', subject: 'Иностранный язык', type: 'Практика', teacher: 'Козлова Е.Н.', room: 'Г-104' },
+    //      { day: 'Четверг', time: '11:00-12:30', subject: 'Теоретическая механика', type: 'Лекция', teacher: 'Николаев П.В.', room: 'Д-105' }
+    //    ]
+    //  : [
+    //      { day: 'Понедельник', time: '13:30-15:00', subject: 'Информатика', type: 'Практика', teacher: 'Смирнов О.Л.', room: 'А-201' },
+    //      { day: 'Вторник', time: '09:00-10:30', subject: 'Математический анализ', type: 'Лекция', teacher: 'Иванов А.П.', room: 'Б-101' },
+    //      { day: 'Пятница', time: '15:40-17:10', subject: 'Физкультура', type: 'Практика', teacher: 'Волков С.А.', room: 'Спортзал' }
+    //    ]
+    //
+    //setSchedule(mockSchedule)
     
     // Для реального API раскомментируй:
-    // fetch(`https://maditutor-backend.onrender.com/api/schedule/${weekType}`)
-    //   .then(res => res.json())
-    //   .then(data => setSchedule(data[selectedGroup] || []))
+    fetch(`https://maditutor-backend.onrender.com/api/schedule/${weekType}`)
+      .then(res => res.json())
+      .then(data => setSchedule(data[selectedGroup] || []))
   }, [selectedGroup, weekType])
 
   // Группируем занятия по дням
