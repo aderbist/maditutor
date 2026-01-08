@@ -1,85 +1,93 @@
-from fastapi import FastAPI, HTTPException, UploadFile, File, Form
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, FileResponse
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
-import json, os, uuid, shutil
-from datetime import datetime
-from database import SessionLocal, TutorCard, Review
+import json, os
+from typing import Dict, List, Any
 
-app = FastAPI(title="MADI Tutor API")
-app.mount("/static", StaticFiles(directory="static"), name="static")
+app = FastAPI(
+    title="MADI Tutor API",
+    description="API для расписания МАДИ",
+    version="1.0.0"
+)
 
 # Разрешить запросы с фронтенда
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "https://maditutor-frontend.onrender.com/"],
+    allow_origins=["*"],  # Можно заменить на конкретный домен фронтенда
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# --- Эндпоинт для расписания ---
+# Подключаем статические файлы
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+def load_schedule_file(filename: str) -> Dict[str, Any]:
+    """Загружает JSON файл с расписанием"""
+    try:
+        file_path = f"static/{filename}"
+        if not os.path.exists(file_path):
+            return {}
+        
+        with open(file_path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception as e:
+        print(f"Ошибка загрузки файла {filename}: {e}")
+        return {}
+
 @app.get("/api/schedule/{week_type}")
-async def get_schedule(week_type: str):  # week_type = "numerator" или "denominator"
-    file_path = f"static/schedule_{week_type}.json"
-    if not os.path.exists(file_path):
-        raise HTTPException(status_code=404, detail="Schedule not found")
-    with open(file_path, "r", encoding="utf-8") as f:
-        return JSONResponse(content=json.load(f))
-
-# --- Эндпоинт для создания карточки репетитора ---
-@app.post("/api/tutors")
-async def create_tutor(
-    full_name: str = Form(...),
-    subjects: str = Form(...),
-    contacts: str = Form(...)
-):
-    db = SessionLocal()
-    edit_token = str(uuid.uuid4())  # Генерируем уникальный токен для редактирования
-    new_tutor = TutorCard(
-        edit_token=edit_token,
-        full_name=full_name,
-        subjects=subjects,
-        contacts=contacts,
-        rating=0.0
-    )
-    db.add(new_tutor)
-    db.commit()
-    db.refresh(new_tutor)
-    db.close()
-    return {"tutor_id": new_tutor.id, "edit_token": edit_token}
-
-# --- Эндпоинт для получения всех репетиторов (для каталога) ---
-@app.get("/api/tutors")
-async def get_tutors():
-    db = SessionLocal()
-    tutors = db.query(TutorCard).all()
-    db.close()
-    return tutors
-
-# --- Эндпоинт для чата с ИИ ---
-@app.post("/api/chat")
-async def chat_with_ai(message: str = Form(...), files: list[UploadFile] = File(None)):
-    # 1. Сохраняем файлы временно
-    file_paths = []
-    if files:
-        for file in files:
-            file_path = f"temp_uploads/{uuid.uuid4()}_{file.filename}"
-            with open(file_path, "wb") as buffer:
-                shutil.copyfileobj(file.file, buffer)
-            file_paths.append(file_path)
+async def get_schedule(week_type: str):
+    """
+    Возвращает расписание для указанного типа недели
+    week_type: "numerator" (числитель) или "denominator" (знаменатель)
+    """
+    if week_type not in ["numerator", "denominator"]:
+        raise HTTPException(
+            status_code=400,
+            detail="Неверный тип недели. Используйте 'numerator' или 'denominator'"
+        )
     
-    # 2. Заглушка для ответа ИИ
-    ai_response = f"Вы сказали: '{message}'. В демо-версии ИИ-агент имитирует ответ. "
-    if file_paths:
-        ai_response += f"Загружено файлов: {len(file_paths)}."
+    filename = f"schedule_{week_type}.json"
+    schedule_data = load_schedule_file(filename)
     
-    # 3. Удаляем файлы после обработки (имитация)
-    for fp in file_paths:
-        if os.path.exists(fp):
-            os.remove(fp)
-            
-    return {"response": ai_response}
+    if not schedule_data:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Расписание для {week_type} не найдено"
+        )
+    
+    return JSONResponse(content=schedule_data)
+
+@app.get("/api/groups")
+async def get_all_groups():
+    """Возвращает список всех доступных групп"""
+    numerator_data = load_schedule_file("schedule_numerator.json")
+    denominator_data = load_schedule_file("schedule_denominator.json")
+    
+    # Объединяем группы из обоих файлов
+    all_groups = set()
+    all_groups.update(numerator_data.keys())
+    all_groups.update(denominator_data.keys())
+    
+    return JSONResponse(content={"groups": sorted(list(all_groups))})
+
+@app.get("/api/health")
+async def health_check():
+    """Проверка работоспособности API"""
+    return {"status": "healthy", "service": "MADI Tutor API"}
 
 @app.get("/")
 async def root():
-    return {"message": "MADI Tutor API работает"}
+    return {
+        "message": "MADI Tutor API работает",
+        "endpoints": {
+            "расписание": "/api/schedule/{numerator|denominator}",
+            "все группы": "/api/groups",
+            "статус": "/api/health"
+        }
+    }
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
