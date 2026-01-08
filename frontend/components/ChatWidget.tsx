@@ -21,6 +21,46 @@ export default function ChatWidget() {
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  const handleSend = async () => {
+    if (!inputText.trim() && files.length === 0) return;
+
+    // Добавляем сообщение пользователя
+    const userMessage: Message = {
+      id: messages.length + 1,
+      text: inputText,
+      sender: 'user',
+      files: files.map(file => ({
+        name: file.name,
+        type: file.type,
+        size: file.size
+      }))
+    };
+
+    setMessages(prev => [...prev, userMessage]);
+    setInputText('');
+    setFiles([]);
+    setIsTyping(true);
+
+    try {
+      // Используем реальный API
+      const response = await api.chatWithAI(inputText, files);
+      
+      setMessages(prev => [...prev, {
+        id: prev.length + 2,
+        text: response.response,
+        sender: 'ai'
+      }]);
+    } catch (error) {
+      setMessages(prev => [...prev, {
+        id: prev.length + 2,
+        text: 'Извините, произошла ошибка. Пожалуйста, попробуйте еще раз.',
+        sender: 'ai'
+      }]);
+    } finally {
+      setIsTyping(false);
+    }
+  };
+
   // Автопрокрутка к новым сообщениям
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
