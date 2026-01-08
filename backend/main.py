@@ -1,46 +1,56 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from fastapi.staticfiles import StaticFiles
-import json, os
-from typing import Dict, List, Any
+import json
+import os
 
 app = FastAPI(
-    title="MADI Tutor API",
-    description="API для расписания МАДИ",
-    version="1.0.0"
+    title="MADI Tutor Schedule API",
+    description="API для расписания занятий МАДИ",
+    version="2.0.0"
 )
 
-# Разрешить запросы с фронтенда
+# Разрешить все CORS запросы
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Можно заменить на конкретный домен фронтенда
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Подключаем статические файлы
-app.mount("/static", StaticFiles(directory="static"), name="static")
-
-def load_schedule_file(filename: str) -> Dict[str, Any]:
+def load_schedule(week_type: str):
     """Загружает JSON файл с расписанием"""
     try:
-        file_path = f"static/{filename}"
-        if not os.path.exists(file_path):
-            return {}
+        # Определяем путь к файлу
+        if week_type == "numerator":
+            filepath = "schedule_numerator.json"
+        elif week_type == "denominator":
+            filepath = "schedule_denominator.json"
+        else:
+            return None
+            
+        # В Render файлы в корне папки static
+        full_path = f"static/{filepath}"
         
-        with open(file_path, "r", encoding="utf-8") as f:
+        # Проверяем существует ли файл
+        if not os.path.exists(full_path):
+            print(f"Файл не найден: {full_path}")
+            return None
+            
+        # Читаем файл
+        with open(full_path, "r", encoding="utf-8") as f:
             return json.load(f)
+            
     except Exception as e:
-        print(f"Ошибка загрузки файла {filename}: {e}")
-        return {}
+        print(f"Ошибка загрузки расписания: {e}")
+        return None
 
 @app.get("/api/schedule/{week_type}")
 async def get_schedule(week_type: str):
     """
-    Возвращает расписание для указанного типа недели
-    week_type: "numerator" (числитель) или "denominator" (знаменатель)
+    Получить расписание для недели
+    week_type: 'numerator' (числитель) или 'denominator' (знаменатель)
     """
     if week_type not in ["numerator", "denominator"]:
         raise HTTPException(
@@ -48,8 +58,7 @@ async def get_schedule(week_type: str):
             detail="Неверный тип недели. Используйте 'numerator' или 'denominator'"
         )
     
-    filename = f"schedule_{week_type}.json"
-    schedule_data = load_schedule_file(filename)
+    schedule_data = load_schedule(week_type)
     
     if not schedule_data:
         raise HTTPException(
@@ -57,37 +66,44 @@ async def get_schedule(week_type: str):
             detail=f"Расписание для {week_type} не найдено"
         )
     
-    return JSONResponse(content=schedule_data)
+    return schedule_data
 
 @app.get("/api/groups")
-async def get_all_groups():
-    """Возвращает список всех доступных групп"""
-    numerator_data = load_schedule_file("schedule_numerator.json")
-    denominator_data = load_schedule_file("schedule_denominator.json")
+async def get_groups():
+    """Получить список всех групп"""
+    numerator = load_schedule("numerator")
+    denominator = load_schedule("denominator")
     
-    # Объединяем группы из обоих файлов
-    all_groups = set()
-    all_groups.update(numerator_data.keys())
-    all_groups.update(denominator_data.keys())
+    groups = set()
     
-    return JSONResponse(content={"groups": sorted(list(all_groups))})
+    if numerator:
+        groups.update(numerator.keys())
+    if denominator:
+        groups.update(denominator.keys())
+    
+    return {"groups": sorted(list(groups))}
 
 @app.get("/api/health")
 async def health_check():
-    """Проверка работоспособности API"""
-    return {"status": "healthy", "service": "MADI Tutor API"}
+    """Проверка здоровья API"""
+    return {
+        "status": "healthy",
+        "service": "MADI Schedule API",
+        "version": "2.0.0"
+    }
 
 @app.get("/")
 async def root():
     return {
-        "message": "MADI Tutor API работает",
+        "message": "MADI Schedule API работает!",
         "endpoints": {
-            "расписание": "/api/schedule/{numerator|denominator}",
-            "все группы": "/api/groups",
-            "статус": "/api/health"
+            "schedule": "/api/schedule/{numerator|denominator}",
+            "groups": "/api/groups",
+            "health": "/api/health"
         }
     }
 
+# Для локального запуска
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
