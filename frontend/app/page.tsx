@@ -17,7 +17,7 @@ interface Schedule {
 }
 
 // ⚠️ ВАЖНО: Замените этот URL на реальный URL вашего Node.js бэкенда на Render
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://madi-backend-node.onrender.com';
+const API_URL = 'https://madi-backend-node.onrender.com';
 
 export default function Home() {
   const [selectedGroup, setSelectedGroup] = useState<string>('')
