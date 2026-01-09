@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://ваш-backend-node.onrender.com';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://madi-backend-node.onrender.com';
 
 export default function TestPage() {
   const [status, setStatus] = useState('Проверяем...');
