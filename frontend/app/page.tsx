@@ -23,11 +23,18 @@ export default function Home() {
   const [groups, setGroups] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
 
+  // Константа с URL API
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://maditutor-backend.onrender.com';
+
   // Загружаем список групп
   useEffect(() => {
-    fetch('https://maditutor-backend.onrender.com/api/groups')
-      .then(res => res.json())
-      .then(data => setGroups(data.groups || []))
+    fetch(`${API_URL}/api/schedule/${weekType}`)
+  .then(res => res.json())
+  .then(data => {
+    if (data.success) {
+      setSchedule(data.data);
+    }
+  });
   }, [])
 
   // Загрузка расписания при выборе группы
@@ -38,17 +45,19 @@ export default function Home() {
     }
     
     setLoading(true)
-    fetch(`https://maditutor-backend.onrender.com/api/schedule/${weekType}`)
-      .then(res => res.json())
-      .then((data: Schedule) => {
-        setSchedule(data)
-        setLoading(false)
-      })
-      .catch(() => {
-        setLoading(false)
-        setSchedule(null)
-      })
+    fetch(`${API_URL}/api/schedule/${weekType}`)
+  .then(res => res.json())
+  .then(data => {
+    if (data.success) {
+      setSchedule(data.data);
+    }
+  });
   }, [selectedGroup, weekType])
+
+  // Для получения групп:
+fetch(`${API_URL}/api/groups`)
+  .then(res => res.json())
+  .then(data => setGroups(data.groups));
 
   const daysOfWeek = [
     'Понедельник',
